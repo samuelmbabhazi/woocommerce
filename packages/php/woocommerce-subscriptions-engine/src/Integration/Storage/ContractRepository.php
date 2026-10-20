@@ -29,6 +29,8 @@ use Automattic\WooCommerce\SubscriptionsEngine\Core\Entity\ContractStatus;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\Entity\Cycle;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\Entity\CycleStatus;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\Coercion;
+use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\InvalidInputException;
+use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\ValidationErrorCode;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\ValueObject\ItemsSnapshot;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\ValueObject\PlanSnapshot;
 
@@ -1080,13 +1082,20 @@ final class ContractRepository {
 	 * @param string               $to_status   The status to write; must be a registered cycle status.
 	 * @param array<string, mixed> $changes     Optional `order_id` (?int), `reason` (?string), `claim_seconds` (int).
 	 * @return bool True when this caller won the transition (for a same-status call: the row carries the status).
-	 * @throws \DomainException If `$to_status` is not a registered cycle status.
+	 * @throws InvalidInputException If `$to_status` is not a registered cycle status.
 	 */
 	public function transition_cycle( int $cycle_id, string $from_status, string $to_status, array $changes ): bool {
 		global $wpdb;
 
 		if ( ! CycleStatus::is_registered( $to_status ) ) {
-			throw new \DomainException( esc_html( sprintf( 'ContractRepository::transition_cycle(): cycle status "%s" is not registered.', $to_status ) ) );
+			// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the message is not output; the facade escapes it.
+			throw new InvalidInputException(
+				ValidationErrorCode::NOT_REGISTERED,
+				'to_status',
+				sprintf( 'ContractRepository::transition_cycle(): cycle status "%s" is not registered.', $to_status ),
+				array( 'value' => $to_status )
+			);
+			// phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$set    = array( 'status = %s' );
