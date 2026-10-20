@@ -82,6 +82,8 @@ const fontSizePickerMock = FontSizePicker as unknown as jest.Mock;
 const fontAppearanceControlMock = FontAppearanceControl as unknown as jest.Mock;
 const useEmailStylesMock = useEmailStyles as jest.Mock;
 const getElementStylesMock = getElementStyles as jest.Mock;
+const defaultGetElementStyles = getElementStylesMock.getMockImplementation();
+const defaultUseEmailStyles = useEmailStylesMock.getMockImplementation();
 
 const mockFontSettings = () =>
 	useSettingsMock.mockImplementation( ( ...paths: string[] ) => {
@@ -104,6 +106,8 @@ describe( 'TypographyElementPanel', () => {
 	beforeEach( () => {
 		fontSizePickerMock.mockClear();
 		fontAppearanceControlMock.mockClear();
+		getElementStylesMock.mockImplementation( defaultGetElementStyles );
+		useEmailStylesMock.mockImplementation( defaultUseEmailStyles );
 	} );
 
 	it( 'passes the spacing units from the email theme to the font size picker', () => {
