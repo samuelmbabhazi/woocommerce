@@ -374,10 +374,15 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 
 		await expect( pageObject.products ).toHaveCount( 9 );
 
-		await editor.insertBlock( {
-			name: 'woocommerce/filter-wrapper',
-			attributes: { filterType: 'price-filter' },
-		} );
+		const productCollectionBlock = await editor.getBlockByName(
+			'woocommerce/product-collection'
+		);
+		const productCollectionClientId =
+			( await productCollectionBlock.getAttribute( 'data-block' ) ) ?? '';
+		await editor.insertBlock(
+			{ name: 'woocommerce/product-filters' },
+			{ clientId: productCollectionClientId }
+		);
 
 		await pageObject.publishAndGoToFrontend();
 
@@ -385,14 +390,14 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 
 		await page
 			.getByRole( 'textbox', {
-				name: 'Filter products by minimum',
+				name: 'Filter products by minimum price',
 			} )
 			.dblclick();
 		await page.keyboard.type( '45' );
 
 		await page
 			.getByRole( 'textbox', {
-				name: 'Filter products by maximum',
+				name: 'Filter products by maximum price',
 			} )
 			.dblclick();
 		await page.keyboard.type( '55' );
@@ -411,14 +416,14 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 	} );
 
 	test.describe( '"Query Type" control', () => {
-		test( 'should be visible on posts', async ( { pageObject } ) => {
+		test( 'should be hidden on posts', async ( { pageObject } ) => {
 			await pageObject.createNewPostAndInsertBlock();
 
 			await expect(
 				pageObject
 					.locateSidebarSettings()
 					.getByLabel( SELECTORS.usePageContextControl )
-			).toBeVisible();
+			).toBeHidden();
 		} );
 
 		[
@@ -487,7 +492,7 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 			`${ BLOCK_THEME_SLUG }//home`,
 			`${ BLOCK_THEME_SLUG }//index`,
 		].forEach( ( slug ) => {
-			test( `should be visible in non-archive template: ${ slug }`, async ( {
+			test( `should be hidden in non-archive template: ${ slug }`, async ( {
 				pageObject,
 				editor,
 			} ) => {
@@ -501,7 +506,7 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 					pageObject
 						.locateSidebarSettings()
 						.getByLabel( SELECTORS.usePageContextControl )
-				).toBeVisible();
+				).toBeHidden();
 			} );
 		} );
 
@@ -605,7 +610,7 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 			await expect( customQueryType ).not.toBeChecked();
 		} );
 
-		test( 'allows filtering in non-archive context', async ( {
+		test( 'nested filters affect only their local collection', async ( {
 			pageObject,
 			editor,
 			page,
@@ -657,10 +662,10 @@ test.describe( 'Product Collection: Inspector Controls', () => {
 
 			await expect(
 				productCollection.first().locator( SELECTORS.product )
-			).toHaveCount( 1 );
+			).toHaveCount( 9 );
 			await expect(
 				productCollection.last().locator( SELECTORS.product )
-			).toHaveCount( 9 );
+			).toHaveCount( 1 );
 		} );
 
 		test( 'correctly combines editor and front-end filters', async ( {
