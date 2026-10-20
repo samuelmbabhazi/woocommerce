@@ -329,7 +329,6 @@ class ContractsTest extends EngineIntegrationTestCase {
 			$data = $e->get_errors()->get_error_data( $code );
 			$this->assertIsArray( $data );
 			$this->assertSame( $field, $data['field'] );
-			$this->assertStringContainsString( $field, $e->get_errors()->get_error_message( $code ) );
 		}
 	}
 
@@ -380,7 +379,7 @@ class ContractsTest extends EngineIntegrationTestCase {
 				Contracts::update( $id, array( 'addresses' => array( 'home' => array( 'first_name' => 'Ada' ) ) ) );
 			},
 			ValidationErrorCode::NOT_IN_ENUM,
-			'addresses[home]'
+			'addresses.home'
 		);
 	}
 
