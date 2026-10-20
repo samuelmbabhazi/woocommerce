@@ -3,7 +3,10 @@
  */
 import { render } from '@testing-library/react';
 import { FontSizePicker } from '@wordpress/components';
-import { useSettings } from '@wordpress/block-editor';
+import {
+	useSettings,
+	__experimentalFontAppearanceControl as FontAppearanceControl,
+} from '@wordpress/block-editor';
 
 /**
  * Internal dependencies
@@ -18,7 +21,7 @@ jest.mock( '@wordpress/components', () => ( {
 
 jest.mock( '@wordpress/block-editor', () => ( {
 	useSettings: jest.fn(),
-	__experimentalFontAppearanceControl: () => null,
+	__experimentalFontAppearanceControl: jest.fn( () => null ),
 	__experimentalLetterSpacingControl: () => null,
 	__experimentalFontFamilyControl: () => null,
 	LineHeightControl: () => null,
@@ -52,7 +55,11 @@ jest.mock( '../../../../hooks', () => ( {
 } ) );
 
 jest.mock( '../../utils', () => ( {
-	getElementStyles: () => ( { typography: { fontSize: '16px' }, color: {} } ),
+	getElementStyles: () => ( {
+		typography: { fontSize: '16px', fontFamily: 'Inter, sans-serif' },
+		color: {},
+	} ),
+	getFontFamilyFaces: jest.requireActual( '../../utils' ).getFontFamilyFaces,
 } ) );
 
 jest.mock( '../../hooks', () => ( {
@@ -70,10 +77,12 @@ jest.mock( '../../../../events', () => ( {
 
 const useSettingsMock = useSettings as jest.Mock;
 const fontSizePickerMock = FontSizePicker as unknown as jest.Mock;
+const fontAppearanceControlMock = FontAppearanceControl as unknown as jest.Mock;
 
 describe( 'TypographyElementPanel', () => {
 	beforeEach( () => {
 		fontSizePickerMock.mockClear();
+		fontAppearanceControlMock.mockClear();
 	} );
 
 	it( 'passes the spacing units from the email theme to the font size picker', () => {
@@ -89,5 +98,34 @@ describe( 'TypographyElementPanel', () => {
 		expect( fontSizePickerMock.mock.calls[ 0 ][ 0 ].units ).toEqual( [
 			'px',
 		] );
+	} );
+
+	it( 'passes the font faces of a theme font to the appearance control', () => {
+		const fontFace = [
+			{ fontFamily: 'Inter', fontStyle: 'normal', fontWeight: '300' },
+		];
+		useSettingsMock.mockImplementation( ( ...paths: string[] ) =>
+			paths[ 0 ] === 'spacing.units'
+				? [ [ 'px' ] ]
+				: [
+						[],
+						{
+							default: [],
+							theme: [
+								{
+									slug: 'inter',
+									fontFamily: 'Inter, sans-serif',
+									fontFace,
+								},
+							],
+						},
+					]
+		);
+
+		render( <TypographyElementPanel element="text" headingLevel="" /> );
+
+		expect(
+			fontAppearanceControlMock.mock.calls[ 0 ][ 0 ].fontFamilyFaces
+		).toEqual( fontFace );
 	} );
 } );
