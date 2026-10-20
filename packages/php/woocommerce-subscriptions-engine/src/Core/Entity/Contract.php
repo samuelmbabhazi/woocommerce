@@ -25,9 +25,10 @@ declare( strict_types=1 );
 
 namespace Automattic\WooCommerce\SubscriptionsEngine\Core\Entity;
 
-use DomainException;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\MoneyScale;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\Coercion;
+use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\InvalidInputException;
+use Automattic\WooCommerce\SubscriptionsEngine\Core\Support\ValidationErrorCode;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\ValueObject\PaymentInstrumentRef;
 use Automattic\WooCommerce\SubscriptionsEngine\Core\ValueObject\PlanSnapshot;
 
@@ -291,7 +292,7 @@ final class Contract {
 	 * Build a new, unsaved contract. `extension_slug` is required.
 	 *
 	 * @param array<string, mixed> $args Contract attributes.
-	 * @throws DomainException If the contract attributes are not valid.
+	 * @throws InvalidInputException If the contract attributes are not valid.
 	 */
 	public static function create( array $args ): self {
 		// A new contract is always unsaved; never adopt a caller-supplied id.
@@ -313,7 +314,7 @@ final class Contract {
 	 * Checked against the state the caller holds: the engine opens no transaction or lock, so
 	 * concurrent writers to the currency and totals of one contract coordinate themselves.
 	 *
-	 * @throws DomainException If a total is non-zero while the currency is unset.
+	 * @throws InvalidInputException If a total is non-zero while the currency is unset.
 	 */
 	public function assert_money_has_currency(): void {
 		if ( null !== $this->currency ) {
@@ -322,7 +323,7 @@ final class Contract {
 
 		foreach ( array( $this->billing_total, $this->discount_total, $this->shipping_total, $this->tax_total ) as $total ) {
 			if ( 0.0 !== (float) $total ) {
-				throw new DomainException( 'Contract: money totals require a currency.' );
+				throw new InvalidInputException( ValidationErrorCode::REQUIRED, 'currency', 'Contract: money totals require a currency.' );
 			}
 		}
 	}
@@ -388,7 +389,7 @@ final class Contract {
 	 * status is a no-op, so a hydrated unregistered status survives it.
 	 *
 	 * @param string $status Target status; must be registered.
-	 * @throws DomainException If `$status` is not a registered contract status.
+	 * @throws InvalidInputException If `$status` is not a registered contract status.
 	 */
 	public function set_status( string $status ): void {
 		if ( $status === $this->status ) {
@@ -712,7 +713,7 @@ final class Contract {
 	 *
 	 * @param string $schedule_source 'subscriptions_engine' or the slug of the gateway or
 	 *                                extension that keeps its own schedule.
-	 * @throws DomainException If `$schedule_source` is not a valid slug.
+	 * @throws InvalidInputException If `$schedule_source` is not a valid slug.
 	 */
 	public function set_schedule_source( string $schedule_source ): void {
 		self::assert_schedule_source( $schedule_source );
@@ -792,11 +793,16 @@ final class Contract {
 	 * Refuse a status that is not a registered contract status.
 	 *
 	 * @param string $status Status to check.
-	 * @throws DomainException If `$status` is not registered.
+	 * @throws InvalidInputException If `$status` is not registered.
 	 */
 	private static function assert_status( string $status ): void {
 		if ( ! ContractStatus::is_registered( $status ) ) {
-			throw new DomainException( sprintf( 'Contract: status "%s" is not registered.', $status ) );
+			throw new InvalidInputException(
+				ValidationErrorCode::NOT_REGISTERED,
+				'status',
+				sprintf( 'Contract: status "%s" is not registered.', $status ),
+				array( 'value' => $status )
+			);
 		}
 	}
 
@@ -804,11 +810,11 @@ final class Contract {
 	 * Refuse a missing or empty owning extension slug.
 	 *
 	 * @param string|null $extension_slug Extension slug to check.
-	 * @throws DomainException If `$extension_slug` is null or empty.
+	 * @throws InvalidInputException If `$extension_slug` is null or empty.
 	 */
 	private static function assert_extension_slug( ?string $extension_slug ): void {
 		if ( null === $extension_slug || '' === $extension_slug ) {
-			throw new DomainException( 'Contract: extension_slug is required and must be a non-empty string.' );
+			throw new InvalidInputException( ValidationErrorCode::REQUIRED, 'extension_slug', 'Contract: extension_slug is required and must be a non-empty string.' );
 		}
 	}
 
@@ -818,11 +824,15 @@ final class Contract {
 	 * gateway slugs).
 	 *
 	 * @param string $schedule_source Schedule source to check.
-	 * @throws DomainException If `$schedule_source` is not a valid slug.
+	 * @throws InvalidInputException If `$schedule_source` is not a valid slug.
 	 */
 	private static function assert_schedule_source( string $schedule_source ): void {
 		if ( 1 !== preg_match( '/^[a-z0-9_-]{1,64}$/D', $schedule_source ) ) {
-			throw new DomainException( sprintf( 'Contract: invalid schedule source "%s".', $schedule_source ) );
+			throw new InvalidInputException(
+				ValidationErrorCode::INVALID_VALUE,
+				'schedule_source',
+				sprintf( 'Contract: invalid schedule source "%s".', $schedule_source )
+			);
 		}
 	}
 }
