@@ -369,7 +369,7 @@ abstract class AbstractBlock {
 	 * |--------|------------------------|------------------------------------------|
 	 * | trunk | 11.28 ms | 87.9 ms |
 	 * | optimized | 4.58 ms | 81.5 ms |
-	 * | **Saved** | **6.70 ms (59%)** | **6.4 ms (7.3%)** |
+	 * | **Saved** | **6.70 ms (59%)** | **6.40 ms (7.3%)** |
 	 *
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
 	 * @return \WP_Block_Type|false
