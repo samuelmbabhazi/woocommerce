@@ -386,7 +386,7 @@ abstract class AbstractBlock {
 		$metadata['file'] = wp_normalize_path( $real_path ? $real_path : $metadata_path );
 		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Step 3: Property mapping (99.4% of blocks) + i18n (98.3% of blocks as per v11.2) + merge caller-provided settings.
+		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.2) + merge caller-provided settings.
 		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
@@ -419,7 +419,7 @@ abstract class AbstractBlock {
 		}
 		$settings = array_merge( $settings, $block_settings );
 
-		// Step 4: Asset handle and module registration (21.3% of blocks as per v11.2).
+		// Step 4: Asset handle and module registration (20.8% of blocks as per v11.2).
 		$asset_fields = array(
 			// Scripts.
 			'editorScript'     => array( 'editor_script_handles', 'register_block_script_handle' ),
