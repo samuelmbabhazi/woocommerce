@@ -1,0 +1,10 @@
+{
+	"name": "woocommerce/product-search",
+	"title": "Product Search",
+	"description": "A search block for products.",
+	"category": "woocommerce",
+	"keywords": [ "WooCommerce" ],
+	"textdomain": "woocommerce",
+	"apiVersion": 3,
+	"$schema": "https://schemas.wp.org/trunk/block.json"
+}
