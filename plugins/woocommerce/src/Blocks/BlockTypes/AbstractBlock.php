@@ -359,11 +359,11 @@ abstract class AbstractBlock {
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
 	 * @return \WP_Block_Type|false
 	 */
-	final protected function register_block_type_from_metadata( array $block_settings ): bool {
+	final protected function register_block_type_from_metadata( array $block_settings ) {
 		static $i18n_schema = null;
 
-		// Step 1: optimistic resolution for Woo core templates, with early fallback to upstream (Pareto rule applied -
-		// manifests with rarely used attributes directed to slow path). As per v11.2, 99.4% of blocks will follow th fast-path.
+		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
+		// that use rarely needed features. As per v11.2, 99.4% of blocks follow the fast path.
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
 		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
 		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
@@ -375,10 +375,10 @@ abstract class AbstractBlock {
 
 		$metadata['file'] = wp_normalize_path( $metadata_path );
 
-		// Step 2: BC, replicates register_block_type_from_metadata hooks lifecycle.
+		// Step 2: Replicate the register_block_type_from_metadata filter for backward compatibility.
 		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Step 3: Property mapping + i18n + merge caller-provided settings (covering 98.3% of blocks as per v11.2).
+		// Step 3: Property mapping (99.4% of blocks) + i18n (98.3% of blocks as per v11.2) + merge caller-provided settings.
 		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
@@ -442,7 +442,7 @@ abstract class AbstractBlock {
 			}
 		}
 
-		// Step 5: BC, replicates register_block_type_from_metadata hooks lifecycle.
+		// Step 5: Replicate the register_block_type_from_metadata filter for backward compatibility.
 		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
 		// Step 6: registration itself — the only mandatory WP core call.
