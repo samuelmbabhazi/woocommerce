@@ -356,26 +356,18 @@ abstract class AbstractBlock {
 	/**
 	 * WC-tailored block registration that bypasses register_block_type_from_metadata overhead.
 	 *
-	 * This replaces the generic register_block_type_from_metadata() path for WooCommerce blocks,
-	 * eliminating ~87% of per-block registration cost (wp_normalize_path/realpath filesystem calls,
-	 * redundant filter dispatches, and i18n re-computation).
-	 *
-	 * Requires wp_register_block_metadata_collection() to have been called first (see
-	 * BlockTypesController::register_block_metadata).
-	 *
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
-	 * @return bool True if registered successfully.
+	 * @return WP_Block_Type|false
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ): bool {
 		static $i18n_schema = null;
 
-		// Phase 1: Metadata resolution (100% of blocks as per v11.2) — read directly from the registry, skip wp_normalize_path/realpath.
+		// Step 1: optimistic resolution for Woo core templates, with early fallback to upstream (Pareto rule applied -
+		// manifests with rarely used attributes directed to slow path). As per v11.2, 99.4% of blocks will follow th fast-path.
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
 		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
-
-		// Render templates, variation PHP files, and blockHooks are unused/handled elsewhere as of 11.2 — fall back to the generic path if any appear.
 		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
-			return (bool) register_block_type_from_metadata(
+			return register_block_type_from_metadata(
 				$this->asset_api->generate_block_metadata_path( $this->block_name ),
 				$block_settings
 			);
@@ -383,12 +375,10 @@ abstract class AbstractBlock {
 
 		$metadata['file'] = wp_normalize_path( $metadata_path );
 
-		// Phase 2: block_type_metadata filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
-		// Droppable: WC's own handle_block_type_metadata just stamps the version on WC blocks,
-		// which we could inline here. But the filter also serves third-party listeners.
-		$metadata = apply_filters( 'block_type_metadata', $metadata );
+		// Step 2: BC, replicates register_block_type_from_metadata hooks lifecycle.
+		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Phase 3: Property mapping (99.4% of blocks) + i18n + merge caller-provided settings (98.3% of blocks as per v11.2).
+		// Step 3: Property mapping + i18n + merge caller-provided settings (covering 98.3% of blocks as per v11.2).
 		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
@@ -422,7 +412,7 @@ abstract class AbstractBlock {
 		}
 		$settings = array_merge( $settings, $block_settings );
 
-		// Phase 4: Asset handle and module registration (21.3% of blocks as per v11.2).
+		// Step 4: Asset handle and module registration (21.3% of blocks as per v11.2).
 		$asset_fields = array(
 			// Scripts.
 			'editorScript'     => array( 'editor_script_handles', 'register_block_script_handle' ),
@@ -452,14 +442,11 @@ abstract class AbstractBlock {
 			}
 		}
 
-		// Phase 5: block_type_metadata_settings filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
-		// Droppable for WC blocks specifically: WC's own listeners (use_single_block_editor_style,
-		// prevent_shortcodes_html_breakage) only affect WC blocks or core/shortcode, and could be
-		// inlined. But the filter also serves third-party listeners.
-		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata );
+		// Step 5: BC, replicates register_block_type_from_metadata hooks lifecycle.
+		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Phase 6: Register (99.4% of blocks as per v11.2) — the only mandatory WP core call.
-		return (bool) \WP_Block_Type_Registry::get_instance()->register(
+		// Step 6: registration itself — the only mandatory WP core call.
+		return \WP_Block_Type_Registry::get_instance()->register(
 			! empty( $settings['name'] ) ? $settings['name'] : $metadata['name'],
 			$settings
 		);
