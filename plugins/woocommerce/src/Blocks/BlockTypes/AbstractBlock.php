@@ -360,8 +360,6 @@ abstract class AbstractBlock {
 	 * @return \WP_Block_Type|false
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ) {
-		static $i18n_schema = null;
-
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
 		// that use rarely needed features. As per v11.2, 99.4% of blocks follow the fast path.
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
@@ -400,13 +398,12 @@ abstract class AbstractBlock {
 			'example'         => 'example',
 			'allowedBlocks'   => 'allowed_blocks',
 		);
-		$i18n_schema = $i18n_schema ?? get_block_metadata_i18n_schema();
-		$i18n_domain = ! empty( $metadata['textdomain'] ) ? $metadata['textdomain'] : null;
+		$i18n_schema = get_block_metadata_i18n_schema();
 		foreach ( $property_mappings as $key => $mapped_key ) {
 			if ( isset( $metadata[ $key ] ) ) {
 				$settings[ $mapped_key ] = $metadata[ $key ];
-				if ( $i18n_domain && isset( $i18n_schema->$key ) ) {
-					$settings[ $mapped_key ] = translate_settings_using_i18n_schema( $i18n_schema->$key, $settings[ $mapped_key ], $i18n_domain );
+				if ( isset( $i18n_schema->$key ) ) {
+					$settings[ $mapped_key ] = translate_settings_using_i18n_schema( $i18n_schema->$key, $settings[ $mapped_key ], $metadata['textdomain'] ?? 'woocommerce' );
 				}
 			}
 		}
