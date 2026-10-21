@@ -351,7 +351,9 @@ abstract class AbstractBlock {
 	}
 
 	/**
-	 * WC-tailored block registration that bypasses register_block_type_from_metadata overhead.
+	 * Tailored version of register_block_type_from_metadata: optimistic loading for woocommerce blocks.
+	 * Introduced as an optimization for blocks registration to skip irrelevant and heavy chunks of logic.
+	 * Optimizing upstream is not making sense as it'd be about fast-path guiding specific to Woo core in there.
 	 *
 	 * @since 11.4.0
 	 *
