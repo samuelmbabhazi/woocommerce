@@ -359,14 +359,14 @@ abstract class AbstractBlock {
 	final protected function register_block_type_from_metadata( array $block_settings ) {
 		/**
 		 * ## Benchmark: optimized block registration vs trunk
-		 *Environment:** local Docker (wp-env), 100 iterations per round, 3 rounds, median of medians
+		 *Environment:** local Docker (wp-env), 100 iterations per round, 6 rounds, median of round medians
 		 *Page:** `http://localhost:8888/` (block theme frontend)
 		 *
 		 * | Metric | trunk | optimized | Saved | Saved % |
 		 * |--------|-------|-----------|-------|---------|
-		 * | **p50** | 85.7 ms | 78.6 ms | **7.1 ms** | **8.3%** |
-		 * | **p75** | 88.6 ms | 81.1 ms | **7.5 ms** | **8.5%** |
-		 * | **p95** | 96.4 ms | 95.3 ms | 1.1 ms | 1.2% |
+		 * | **p50** | 87.9 ms | 81.5 ms | **6.4 ms** | **7.3%** |
+		 * | **p75** | 91.5 ms | 83.6 ms | **7.9 ms** | **8.7%** |
+		 * | **p95** | 102.7 ms | 89.3 ms | **13.4 ms** | **13.1%** |
 		 */
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
 		// that use rarely needed features. As per v11.2, 99.4% of Woo blocks follow the fast path.
