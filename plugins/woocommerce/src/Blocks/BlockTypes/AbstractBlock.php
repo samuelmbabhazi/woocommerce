@@ -400,7 +400,7 @@ abstract class AbstractBlock {
 		);
 		$i18n_schema = get_block_metadata_i18n_schema();
 		foreach ( $property_mappings as $key => $mapped_key ) {
-			if ( isset( $metadata[ $key ] ) ) {
+			if ( ! isset( $block_settings[ $mapped_key ] ) && isset( $metadata[ $key ] ) ) {
 				$settings[ $mapped_key ] = $metadata[ $key ];
 				if ( isset( $i18n_schema->$key ) ) {
 					$settings[ $mapped_key ] = translate_settings_using_i18n_schema( $i18n_schema->$key, $settings[ $mapped_key ], $metadata['textdomain'] ?? 'woocommerce' );
