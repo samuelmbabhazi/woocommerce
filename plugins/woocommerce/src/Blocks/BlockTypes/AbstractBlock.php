@@ -372,7 +372,7 @@ abstract class AbstractBlock {
 			);
 		}
 
-		// Step 2: Resolve file path and apply the block_type_metadata filter for backward compatibility.
+		// Step 2: Resolve file path and apply the block_type_metadata filter for backward compatibility with register_block_type_from_metadata worflows.
 		$real_path        = realpath( $metadata_path );
 		$metadata['file'] = wp_normalize_path( $real_path ? $real_path : $metadata_path );
 		$metadata         = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
@@ -440,10 +440,10 @@ abstract class AbstractBlock {
 			}
 		}
 
-		// Step 5: Apply the block_type_metadata_settings filter for backward compatibility.
+		// Step 5: Apply the block_type_metadata_settings filter for backward compatibility with register_block_type_from_metadata worflows.
 		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Step 6: Register — the only mandatory WP core call.
+		// Step 6: Register the block and pass result back to the higher-level workflow.
 		return \WP_Block_Type_Registry::get_instance()->register(
 			! empty( $settings['name'] ) ? $settings['name'] : $metadata['name'],
 			$settings
