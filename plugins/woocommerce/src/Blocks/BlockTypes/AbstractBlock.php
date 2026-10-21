@@ -351,9 +351,19 @@ abstract class AbstractBlock {
 	}
 
 	/**
-	 * Tailored version of register_block_type_from_metadata: optimistic loading for woocommerce blocks.
-	 * Introduced as an optimization for blocks registration to skip irrelevant and heavy chunks of logic.
-	 * Optimizing upstream is not making sense as it'd be about fast-path guiding specific to Woo core in there.
+	 * Tailored version of register_block_type_from_metadata: optimistic loading for WooCommerce blocks.
+	 * Introduced as an optimization for block registration to skip irrelevant and heavy chunks of logic.
+	 * Optimizing upstream does not make sense as it would require fast-path guidance specific to WooCommerce.
+	 *
+	 * Benchmark: optimized block registration vs trunk
+	 * Environment: local Docker (wp-env), 100 iterations per round, 6 rounds, median of round medians.
+	 * Page: http://localhost:8888/ (block theme frontend)
+	 *
+	 * | Metric | trunk    | optimized | Saved    | Saved % |
+	 * |--------|----------|-----------|----------|---------|
+	 * | p50    | 87.9 ms  | 81.5 ms   | 6.4 ms   | 7.3%    |
+	 * | p75    | 91.5 ms  | 83.6 ms   | 7.9 ms   | 8.7%    |
+	 * | p95    | 102.7 ms | 89.3 ms   | 13.4 ms  | 13.1%   |
 	 *
 	 * @since 11.4.0
 	 *
@@ -361,19 +371,8 @@ abstract class AbstractBlock {
 	 * @return \WP_Block_Type|false
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ) {
-		/**
-		 * ## Benchmark: optimized block registration vs trunk
-		 *Environment:** local Docker (wp-env), 100 iterations per round, 6 rounds, median of round medians
-		 *Page:** `http://localhost:8888/` (block theme frontend)
-		 *
-		 * | Metric | trunk | optimized | Saved | Saved % |
-		 * |--------|-------|-----------|-------|---------|
-		 * | **p50** | 87.9 ms | 81.5 ms | **6.4 ms** | **7.3%** |
-		 * | **p75** | 91.5 ms | 83.6 ms | **7.9 ms** | **8.7%** |
-		 * | **p95** | 102.7 ms | 89.3 ms | **13.4 ms** | **13.1%** |
-		 */
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
-		// that use rarely needed features. As per v11.2, 99.4% of Woo blocks follow the fast path.
+		// that use rarely needed features. As per v11.4, 99.4% of WooCommerce blocks follow the fast path.
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
 		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
 		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
@@ -383,12 +382,12 @@ abstract class AbstractBlock {
 			);
 		}
 
-		// Step 2: Replicate the register_block_type_from_metadata filter for backward compatibility.
+		// Step 2: Resolve file path and apply the block_type_metadata filter for backward compatibility.
 		$real_path        = realpath( $metadata_path );
 		$metadata['file'] = wp_normalize_path( $real_path ? $real_path : $metadata_path );
 		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.2) + merge caller-provided settings.
+		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.4) + merge caller-provided settings.
 		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
@@ -421,7 +420,7 @@ abstract class AbstractBlock {
 		}
 		$settings = array_merge( $settings, $block_settings );
 
-		// Step 4: Asset handle and module registration (20.8% of blocks as per v11.2).
+		// Step 4: Asset handle and module registration (20.8% of blocks as per v11.4).
 		$asset_fields = array(
 			// Scripts.
 			'editorScript'     => array( 'editor_script_handles', 'register_block_script_handle' ),
@@ -451,10 +450,10 @@ abstract class AbstractBlock {
 			}
 		}
 
-		// Step 5: Replicate the register_block_type_from_metadata filter for backward compatibility.
+		// Step 5: Apply the block_type_metadata_settings filter for backward compatibility.
 		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
-		// Step 6: registration itself — the only mandatory WP core call.
+		// Step 6: Register — the only mandatory WP core call.
 		return \WP_Block_Type_Registry::get_instance()->register(
 			! empty( $settings['name'] ) ? $settings['name'] : $metadata['name'],
 			$settings
