@@ -1,5 +1,9 @@
 {
 	"name": "woocommerce/cart",
+	"title": "Cart",
+	"description": "Display a shopping cart.",
+	"category": "woocommerce",
+	"keywords": [ "WooCommerce" ],
 	"textdomain": "woocommerce",
 	"supports": {},
 	"apiVersion": 1,

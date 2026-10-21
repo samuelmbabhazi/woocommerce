@@ -1,5 +1,9 @@
 {
 	"name": "woocommerce/product-query",
+	"title": "Product Query",
+	"description": "A query block variation for products.",
+	"category": "woocommerce",
+	"keywords": [ "WooCommerce" ],
 	"textdomain": "woocommerce",
 	"supports": {},
 	"apiVersion": 1,

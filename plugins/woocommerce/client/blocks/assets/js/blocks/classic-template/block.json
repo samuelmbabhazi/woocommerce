@@ -1,5 +1,9 @@
 {
 	"name": "woocommerce/legacy-template",
+	"title": "Classic Template",
+	"description": "Renders classic WooCommerce PHP templates inside a block theme.",
+	"category": "woocommerce",
+	"keywords": [ "WooCommerce" ],
 	"textdomain": "woocommerce",
 	"supports": {},
 	"apiVersion": 3,

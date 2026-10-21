@@ -1,5 +1,9 @@
 {
 	"name": "woocommerce/product-search",
+	"title": "Product Search",
+	"description": "A search block for products.",
+	"category": "woocommerce",
+	"keywords": [ "WooCommerce" ],
 	"textdomain": "woocommerce",
 	"supports": {},
 	"apiVersion": 1,

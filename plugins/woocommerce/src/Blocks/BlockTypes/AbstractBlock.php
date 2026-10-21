@@ -431,7 +431,7 @@ abstract class AbstractBlock {
 				$is_array = is_array( $metadata[ $metadata_field ] );
 				$result   = array();
 				foreach ( (array) $metadata[ $metadata_field ] as $index => $handle ) {
-					$registered = $register( $metadata, $metadata_field, $is_array ? $index : false );
+					$registered = $register( $metadata, $metadata_field, $is_array ? $index : false ); // @phpstan-ignore argument.type (false-positive)
 					if ( $registered ) {
 						$result[] = $registered;
 					}

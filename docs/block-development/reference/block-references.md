@@ -184,12 +184,12 @@ Enable customers to keep track of their location within the store and navigate b
 - **Supports:** align (full, wide), color (link, text, ~~background~~), interactivity (clientNavigation), typography (fontSize, lineHeight), ~~html~~
 - **Attributes:** align, contentJustification, fontSize
 
-## undefined - woocommerce/cart
+## Cart - woocommerce/cart
 
-
+Display a shopping cart.
 
 - **Name:** woocommerce/cart
-- **Category:** 
+- **Category:** woocommerce
 
 ## Accepted Payment Methods - woocommerce/cart-accepted-payment-methods-block
 
@@ -663,12 +663,12 @@ Renders classic WooCommerce shortcodes.
 - **Supports:** align, inserter, interactivity (~~clientNavigation~~), ~~html~~, ~~multiple~~, ~~reusable~~
 - **Attributes:** align, shortcode
 
-## undefined - woocommerce/legacy-template
+## Classic Template - woocommerce/legacy-template
 
-
+Renders classic WooCommerce PHP templates inside a block theme.
 
 - **Name:** woocommerce/legacy-template
-- **Category:** 
+- **Category:** woocommerce
 
 ## Coming Soon - woocommerce/coming-soon
 
@@ -1410,12 +1410,12 @@ Display a grid of products currently on sale.
 - **Supports:** align (full, wide), interactivity (~~clientNavigation~~), ~~html~~, ~~inserter~~
 - **Attributes:** alignButtons, catOperator, categories, columns, contentVisibility, isPreview, orderby, rows, stockStatus
 
-## undefined - woocommerce/product-query
+## Product Query - woocommerce/product-query
 
-
+A query block variation for products.
 
 - **Name:** woocommerce/product-query
-- **Category:** 
+- **Category:** woocommerce
 
 ## Product Results Count - woocommerce/product-results-count
 
@@ -1541,12 +1541,12 @@ Displays a title with the number of reviews.
 - **Supports:** align, color (background, gradients, text), interactivity (clientNavigation), spacing (margin, padding), typography (fontSize, lineHeight), ~~anchor~~, ~~html~~
 - **Attributes:** level, levelOptions, showProductTitle, showReviewsCount, textAlign
 
-## undefined - woocommerce/product-search
+## Product Search - woocommerce/product-search
 
-
+A search block for products.
 
 - **Name:** woocommerce/product-search
-- **Category:** 
+- **Category:** woocommerce
 
 ## Product Specifications - woocommerce/product-specifications
 
