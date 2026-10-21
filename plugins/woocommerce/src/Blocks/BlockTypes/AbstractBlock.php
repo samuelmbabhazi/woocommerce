@@ -357,7 +357,7 @@ abstract class AbstractBlock {
 	 * WC-tailored block registration that bypasses register_block_type_from_metadata overhead.
 	 *
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
-	 * @return WP_Block_Type|false
+	 * @return \WP_Block_Type|false
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ): bool {
 		static $i18n_schema = null;
