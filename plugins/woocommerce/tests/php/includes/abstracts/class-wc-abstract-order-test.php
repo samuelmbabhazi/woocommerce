@@ -857,6 +857,37 @@ class WC_Abstract_Order_Test extends WC_Unit_Test_Case {
 	}
 
 	/**
+	 * @testdox Removing a coupon after the billing email changed releases the row this order added, not another order's row.
+	 */
+	public function test_remove_coupon_releases_identity_recorded_before_billing_email_changed() {
+		$coupon_code = 'remove_changed_email_test';
+		WC_Helper_Coupon::create_coupon( $coupon_code );
+
+		$order_a = WC_Helper_Order::create_order( 0 );
+		$order_a->set_billing_email( 'reserve@example.com' );
+		$order_a->set_status( OrderStatus::PENDING );
+		$order_a->save();
+		$order_a->apply_coupon( $coupon_code );
+
+		$order_b = WC_Helper_Order::create_order( 0 );
+		$order_b->set_billing_email( 'buyer@example.com' );
+		$order_b->set_status( OrderStatus::PENDING );
+		$order_b->save();
+		$order_b->apply_coupon( $coupon_code );
+
+		$order_a = wc_get_order( $order_a->get_id() );
+		$order_a->set_billing_email( 'buyer@example.com' );
+		$order_a->save();
+
+		$this->assertTrue( $order_a->remove_coupon( $coupon_code ) );
+
+		$coupon = new WC_Coupon( $coupon_code );
+		$this->assertSame( array( 'buyer@example.com' ), array_values( $coupon->get_used_by() ) );
+		$this->assertEquals( 1, $coupon->get_usage_count() );
+		$this->assertSame( '', (string) wc_get_order( $order_a->get_id() )->get_meta( '_coupon_usage_identities' ) );
+	}
+
+	/**
 	 * Create a pending order with one $100 product whose line total was manually edited to $50.
 	 *
 	 * @return WC_Order

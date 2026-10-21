@@ -814,4 +814,124 @@ class WC_Order_Functions_Test extends \WC_Unit_Test_Case {
 		$this->assertSame( strtotime( '2024-06-28 15:34:05 UTC' ), $note->date_created->getTimestamp(), 'The note should keep the moment it was created.' );
 		$this->assertSame( '2024-06-29 00:34:05', $note->date_created->date( 'Y-m-d H:i:s' ), 'The note should be shown in the new site timezone.' );
 	}
+
+	/**
+	 * Create a pending guest order with the given coupons applied and counted.
+	 *
+	 * @param string   $email        Billing email.
+	 * @param string[] $coupon_codes Coupon codes.
+	 * @return WC_Order
+	 */
+	private function create_counted_guest_order( string $email, array $coupon_codes ): WC_Order {
+		$order = WC_Helper_Order::create_order( 0 );
+		$order->set_billing_email( $email );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		foreach ( $coupon_codes as $code ) {
+			$order->apply_coupon( $code );
+		}
+
+		return wc_get_order( $order->get_id() );
+	}
+
+	/**
+	 * @testdox Cancelling an order after its billing email changed removes the row it added, not another order's row.
+	 */
+	public function test_cancel_releases_identity_recorded_before_billing_email_changed() {
+		WC_Helper_Coupon::create_coupon( 'cancel_changed_email' );
+
+		$order_a = $this->create_counted_guest_order( 'reserve@example.com', array( 'cancel_changed_email' ) );
+		$this->create_counted_guest_order( 'buyer@example.com', array( 'cancel_changed_email' ) );
+
+		$order_a->set_billing_email( 'buyer@example.com' );
+		$order_a->save();
+		$order_a->update_status( OrderStatus::CANCELLED );
+
+		$coupon = new WC_Coupon( 'cancel_changed_email' );
+		$this->assertSame( array( 'buyer@example.com' ), array_values( $coupon->get_used_by() ) );
+		$this->assertEquals( 1, $coupon->get_usage_count() );
+		$this->assertSame( '', (string) wc_get_order( $order_a->get_id() )->get_meta( '_coupon_usage_identities' ) );
+	}
+
+	/**
+	 * @testdox Cancelling an order releases each coupon under the identity it was counted with.
+	 */
+	public function test_cancel_releases_each_coupon_under_its_own_identity() {
+		WC_Helper_Coupon::create_coupon( 'cancel_first' );
+		WC_Helper_Coupon::create_coupon( 'cancel_second' );
+
+		$order_a = $this->create_counted_guest_order( 'reserve@example.com', array( 'cancel_first' ) );
+		$this->create_counted_guest_order( 'buyer@example.com', array( 'cancel_first' ) );
+
+		$order_a->set_billing_email( 'buyer@example.com' );
+		$order_a->save();
+		$order_a->apply_coupon( 'cancel_second' );
+
+		$this->assertSame( array( 'buyer@example.com' ), array_values( ( new WC_Coupon( 'cancel_second' ) )->get_used_by() ) );
+
+		wc_get_order( $order_a->get_id() )->update_status( OrderStatus::CANCELLED );
+
+		$first = new WC_Coupon( 'cancel_first' );
+		$this->assertSame( array( 'buyer@example.com' ), array_values( $first->get_used_by() ) );
+		$this->assertEquals( 1, $first->get_usage_count() );
+
+		$second = new WC_Coupon( 'cancel_second' );
+		$this->assertSame( array(), array_values( $second->get_used_by() ) );
+		$this->assertEquals( 0, $second->get_usage_count() );
+	}
+
+	/**
+	 * @testdox Cancelling an order releases a coupon applied to an already counted order under the identity it was counted with.
+	 */
+	public function test_cancel_releases_coupon_applied_to_counted_order_under_its_own_identity() {
+		WC_Helper_Coupon::create_coupon( 'cancel_applied_first' );
+		WC_Helper_Coupon::create_coupon( 'cancel_applied_second' );
+
+		$order_a = $this->create_counted_guest_order( 'reserve@example.com', array( 'cancel_applied_first' ) );
+		$order_a->apply_coupon( 'cancel_applied_second' );
+		$this->create_counted_guest_order( 'buyer@example.com', array( 'cancel_applied_second' ) );
+
+		$order_a = wc_get_order( $order_a->get_id() );
+		$order_a->set_billing_email( 'buyer@example.com' );
+		$order_a->save();
+		$order_a->update_status( OrderStatus::CANCELLED );
+
+		$second = new WC_Coupon( 'cancel_applied_second' );
+		$this->assertSame( array( 'buyer@example.com' ), array_values( $second->get_used_by() ) );
+		$this->assertEquals( 1, $second->get_usage_count() );
+	}
+
+	/**
+	 * @testdox Cancelling a guest order whose billing email did not change still removes its own row.
+	 */
+	public function test_cancel_guest_order_removes_its_own_row() {
+		WC_Helper_Coupon::create_coupon( 'cancel_plain_guest' );
+
+		$order = $this->create_counted_guest_order( 'plain@example.com', array( 'cancel_plain_guest' ) );
+		$this->assertContains( 'plain@example.com', ( new WC_Coupon( 'cancel_plain_guest' ) )->get_used_by() );
+
+		$order->update_status( OrderStatus::CANCELLED );
+
+		$coupon = new WC_Coupon( 'cancel_plain_guest' );
+		$this->assertSame( array(), array_values( $coupon->get_used_by() ) );
+		$this->assertEquals( 0, $coupon->get_usage_count() );
+	}
+
+	/**
+	 * @testdox Cancelling an order counted before identities were recorded falls back to its current email.
+	 */
+	public function test_cancel_order_without_recorded_identities_falls_back_to_current_email() {
+		WC_Helper_Coupon::create_coupon( 'cancel_no_identities' );
+
+		$order = $this->create_counted_guest_order( 'legacy@example.com', array( 'cancel_no_identities' ) );
+		$order->delete_meta_data( '_coupon_usage_identities' );
+		$order->save();
+		$this->assertContains( 'legacy@example.com', ( new WC_Coupon( 'cancel_no_identities' ) )->get_used_by() );
+
+		wc_get_order( $order->get_id() )->update_status( OrderStatus::CANCELLED );
+
+		$coupon = new WC_Coupon( 'cancel_no_identities' );
+		$this->assertSame( array(), array_values( $coupon->get_used_by() ) );
+		$this->assertEquals( 0, $coupon->get_usage_count() );
+	}
 }
