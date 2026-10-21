@@ -371,9 +371,8 @@ abstract class AbstractBlock {
 			);
 		}
 
-		$metadata['file'] = wp_normalize_path( $metadata_path );
-
 		// Step 2: Replicate the register_block_type_from_metadata filter for backward compatibility.
+		$metadata['file'] = wp_normalize_path( $metadata_path );
 		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
 		// Step 3: Property mapping (99.4% of blocks) + i18n (98.3% of blocks as per v11.2) + merge caller-provided settings.
