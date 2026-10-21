@@ -330,10 +330,7 @@ abstract class AbstractBlock {
 		}
 
 		// Prefer to register with metadata if the path is set in the block's class.
-		$is_registered = (bool) register_block_type_from_metadata(
-			$this->asset_api->generate_block_metadata_path( $this->block_name ),
-			$block_settings
-		);
+		$is_registered = (bool) $this->register_block_type_from_metadata( $block_settings );
 		if ( $is_registered ) {
 			return;
 		}
@@ -365,7 +362,7 @@ abstract class AbstractBlock {
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
 		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
 		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
-			return register_block_type_from_metadata(
+			return \register_block_type_from_metadata(
 				$this->asset_api->generate_block_metadata_path( $this->block_name ),
 				$block_settings
 			);
