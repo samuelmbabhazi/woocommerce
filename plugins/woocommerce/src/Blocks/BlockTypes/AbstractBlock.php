@@ -389,9 +389,9 @@ abstract class AbstractBlock {
 		}
 
 		// Step 2: Resolve file path and apply the block_type_metadata filter for backward compatibility.
-		$real_path          = realpath( $metadata_path );
-		$metadata['file']   = wp_normalize_path( $real_path ? $real_path : $metadata_path );
-		$metadata           = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
+		$real_path        = realpath( $metadata_path );
+		$metadata['file'] = wp_normalize_path( $real_path ? $real_path : $metadata_path );
+		$metadata         = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
 		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.4) + merge caller-provided settings.
 		$settings = array();
@@ -416,7 +416,7 @@ abstract class AbstractBlock {
 			'example'         => 'example',
 			'allowedBlocks'   => 'allowed_blocks',
 		);
-		$i18n_schema = get_block_metadata_i18n_schema();
+		$i18n_schema       = get_block_metadata_i18n_schema();
 		foreach ( $property_mappings as $key => $mapped_key ) {
 			if ( ! isset( $block_settings[ $mapped_key ] ) && isset( $metadata[ $key ] ) ) {
 				$settings[ $mapped_key ] = $metadata[ $key ];
