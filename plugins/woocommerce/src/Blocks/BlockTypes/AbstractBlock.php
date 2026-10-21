@@ -369,7 +369,7 @@ abstract class AbstractBlock {
 		 * | **p95** | 96.4 ms | 95.3 ms | 1.1 ms | 1.2% |
 		 */
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
-		// that use rarely needed features. As per v11.2, 99.4% of blocks follow the fast path.
+		// that use rarely needed features. As per v11.2, 99.4% of Woo blocks follow the fast path.
 		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
 		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
 		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
