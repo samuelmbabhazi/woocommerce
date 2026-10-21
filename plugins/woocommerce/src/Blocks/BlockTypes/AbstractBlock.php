@@ -351,24 +351,9 @@ abstract class AbstractBlock {
 
 	/**
 	 * Tailored version of register_block_type_from_metadata: optimistic loading for WooCommerce blocks.
+	 *
 	 * Introduced as an optimization for block registration to skip irrelevant and heavy chunks of logic.
 	 * Optimizing upstream does not make sense as it would require fast-path guidance specific to WooCommerce.
-	 *
-	 * Benchmark: optimized block registration vs trunk
-	 *
-	 * | Metric | trunk    | optimized | Saved    | Saved % |
-	 * |--------|----------|-----------|----------|---------|
-	 * | p50    | 87.9 ms  | 81.5 ms   | 6.4 ms   | 7.3%    |
-	 * | p75    | 91.5 ms  | 83.6 ms   | 7.9 ms   | 8.7%    |
-	 * | p95    | 102.7 ms | 89.3 ms   | 13.4 ms  | 13.1%   |
-	 *
-	 * Validation: SPX profiling vs end-to-end page benchmark
-	 *
-	 * | Metric | SPX (registration only) | Page benchmark (end-to-end, 6 rounds p50) |
-	 * |--------|------------------------|------------------------------------------|
-	 * | trunk | 11.28 ms | 87.9 ms |
-	 * | optimized | 4.58 ms | 81.5 ms |
-	 * | **Saved** | **6.70 ms (59%)** | **6.40 ms (7.3%)** |
 	 *
 	 * @since 11.4.0
 	 *
