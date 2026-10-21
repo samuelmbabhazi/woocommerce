@@ -356,8 +356,6 @@ abstract class AbstractBlock {
 	 * Optimizing upstream does not make sense as it would require fast-path guidance specific to WooCommerce.
 	 *
 	 * Benchmark: optimized block registration vs trunk
-	 * Environment: local Docker (wp-env), 100 iterations per round, 6 rounds, median of round medians.
-	 * Page: http://localhost:8888/ (block theme frontend)
 	 *
 	 * | Metric | trunk    | optimized | Saved    | Saved % |
 	 * |--------|----------|-----------|----------|---------|
@@ -365,10 +363,18 @@ abstract class AbstractBlock {
 	 * | p75    | 91.5 ms  | 83.6 ms   | 7.9 ms   | 8.7%    |
 	 * | p95    | 102.7 ms | 89.3 ms   | 13.4 ms  | 13.1%   |
 	 *
-	 * @since 11.4.0
+	 * Validation: SPX profiling vs end-to-end page benchmark
+	 *
+	 * | Metric | SPX (registration only) | Page benchmark (end-to-end, 6 rounds p50) |
+	 * |--------|------------------------|------------------------------------------|
+	 * | trunk | 11.28 ms | 87.9 ms |
+	 * | optimized | 4.58 ms | 81.5 ms |
+	 * | **Saved** | **6.70 ms (59%)** | **6.4 ms (7.3%)** |
 	 *
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
 	 * @return \WP_Block_Type|false
+	 *@since 11.4.0
+	 *
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ) {
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
