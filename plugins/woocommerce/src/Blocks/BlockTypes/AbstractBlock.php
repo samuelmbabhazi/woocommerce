@@ -371,10 +371,10 @@ abstract class AbstractBlock {
 	 * | optimized | 4.58 ms | 81.5 ms |
 	 * | **Saved** | **6.70 ms (59%)** | **6.40 ms (7.3%)** |
 	 *
+	 * @since 11.4.0
+	 *
 	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
 	 * @return \WP_Block_Type|false
-	 *@since 11.4.0
-	 *
 	 */
 	final protected function register_block_type_from_metadata( array $block_settings ) {
 		// Step 1: Optimistic metadata resolution with early fallback to the upstream function for blocks
@@ -389,12 +389,13 @@ abstract class AbstractBlock {
 		}
 
 		// Step 2: Resolve file path and apply the block_type_metadata filter for backward compatibility.
-		$real_path        = realpath( $metadata_path );
-		$metadata['file'] = wp_normalize_path( $real_path ? $real_path : $metadata_path );
-		$metadata = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
+		$real_path          = realpath( $metadata_path );
+		$metadata['file']   = wp_normalize_path( $real_path ? $real_path : $metadata_path );
+		$metadata           = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
 		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.4) + merge caller-provided settings.
-		$settings          = array();
+		$settings = array();
+
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
 			'name'            => 'name',
