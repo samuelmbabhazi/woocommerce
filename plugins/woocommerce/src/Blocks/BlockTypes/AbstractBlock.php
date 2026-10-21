@@ -387,9 +387,9 @@ abstract class AbstractBlock {
 		// Droppable: WC's own handle_block_type_metadata just stamps the version on WC blocks,
 		// which we could inline here. But the filter also serves third-party listeners.
 		$metadata = apply_filters( 'block_type_metadata', $metadata );
-		$settings = array();
 
-		// Phase 3: Property mapping (99.4% of blocks) + i18n (98.3% of blocks as per v11.2).
+		// Phase 3: Property mapping (99.4% of blocks) + i18n + merge caller-provided settings (98.3% of blocks as per v11.2).
+		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
 			'name'            => 'name',
@@ -420,11 +420,9 @@ abstract class AbstractBlock {
 				}
 			}
 		}
-
-		// Phase 4: Merge caller-provided settings (99.4% of blocks as per v11.2).
 		$settings = array_merge( $settings, $block_settings );
 
-		// Phase 5: Asset handle and module registration (21.3% of blocks as per v11.2).
+		// Phase 4: Asset handle and module registration (21.3% of blocks as per v11.2).
 		$asset_fields = array(
 			// Scripts.
 			'editorScript'     => array( 'editor_script_handles', 'register_block_script_handle' ),
@@ -454,16 +452,13 @@ abstract class AbstractBlock {
 			}
 		}
 
-		// blockHooks mapping — skipped. Only woocommerce/saved-for-later uses it (0.6% as per v11.2), and that block
-		// is registered separately in BlockTypesController. The fallback guard in Phase 1 covers any future additions.
-
-		// Phase 6: block_type_metadata_settings filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
+		// Phase 5: block_type_metadata_settings filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
 		// Droppable for WC blocks specifically: WC's own listeners (use_single_block_editor_style,
 		// prevent_shortcodes_html_breakage) only affect WC blocks or core/shortcode, and could be
 		// inlined. But the filter also serves third-party listeners.
 		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata );
 
-		// Phase 7: Register (99.4% of blocks as per v11.2) — the only mandatory WP core call.
+		// Phase 6: Register (99.4% of blocks as per v11.2) — the only mandatory WP core call.
 		return (bool) \WP_Block_Type_Registry::get_instance()->register(
 			! empty( $settings['name'] ) ? $settings['name'] : $metadata['name'],
 			$settings
