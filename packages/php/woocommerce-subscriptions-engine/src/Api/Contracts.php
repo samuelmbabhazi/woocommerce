@@ -192,7 +192,8 @@ final class Contracts {
 			throw ValidationException::from_core( $e ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- from_core() escapes the message.
 		}
 
-		if ( ! $repository->update_fields( $contract, array_keys( $changes ) ) ) {
+		$updated = $repository->update_fields( $contract, array_keys( $changes ) );
+		if ( ! $updated ) {
 			return null;
 		}
 
