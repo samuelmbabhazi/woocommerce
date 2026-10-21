@@ -144,12 +144,10 @@ final class BlockTypesController {
 
 		// Set before registering rather than after, so a registration failure is not retried on a later call.
 		self::$register_blocks_has_run = true;
+
 		$this->register_block_metadata();
-		$block_types = $this->get_block_types();
-
-		foreach ( $block_types as $block_type ) {
+		foreach ( $this->get_block_types() as $block_type ) {
 			$block_type_class = __NAMESPACE__ . '\\BlockTypes\\' . $block_type;
-
 			new $block_type_class( $this->asset_api, $this->asset_data_registry, new IntegrationRegistry() );
 		}
 	}

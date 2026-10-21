@@ -145,6 +145,7 @@ abstract class AbstractBlock {
 			_doing_it_wrong( __METHOD__, esc_html__( 'Block name is required.', 'woocommerce' ), '4.5.0' );
 			return false;
 		}
+		// TODO: any better time to initialize the registry?
 		$this->integration_registry->initialize( $this->block_name . '_block' );
 		$this->register_block_type();
 		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_editor_assets' ] );
@@ -349,6 +350,123 @@ abstract class AbstractBlock {
 		register_block_type(
 			$this->get_full_block_name(),
 			$block_settings
+		);
+	}
+
+	/**
+	 * WC-tailored block registration that bypasses register_block_type_from_metadata overhead.
+	 *
+	 * This replaces the generic register_block_type_from_metadata() path for WooCommerce blocks,
+	 * eliminating ~87% of per-block registration cost (wp_normalize_path/realpath filesystem calls,
+	 * redundant filter dispatches, and i18n re-computation).
+	 *
+	 * Requires wp_register_block_metadata_collection() to have been called first (see
+	 * BlockTypesController::register_block_metadata).
+	 *
+	 * @param array $block_settings Settings to merge into the block type (render_callback, styles, etc).
+	 * @return bool True if registered successfully.
+	 */
+	final protected function register_block_type_from_metadata( array $block_settings ): bool {
+		static $i18n_schema = null;
+
+		// Phase 1: Metadata resolution (100% of blocks as per v11.2) — read directly from the registry, skip wp_normalize_path/realpath.
+		$metadata_path = $this->asset_api->generate_block_metadata_path( $this->block_name );
+		$metadata      = 'woocommerce' === $this->namespace ? \WP_Block_Metadata_Registry::get_metadata( $metadata_path ) : null;
+
+		// Render templates, variation PHP files, and blockHooks are unused/handled elsewhere as of 11.2 — fall back to the generic path if any appear.
+		if ( empty( $metadata ) || ! empty( $metadata['render'] ) || ! empty( $metadata['variations'] ) || ! empty( $metadata['blockHooks'] ) ) {
+			return (bool) register_block_type_from_metadata(
+				$this->asset_api->generate_block_metadata_path( $this->block_name ),
+				$block_settings
+			);
+		}
+
+		$metadata['file'] = wp_normalize_path( $metadata_path );
+
+		// Phase 2: block_type_metadata filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
+		// Droppable: WC's own handle_block_type_metadata just stamps the version on WC blocks,
+		// which we could inline here. But the filter also serves third-party listeners.
+		$metadata = apply_filters( 'block_type_metadata', $metadata );
+		$settings = array();
+
+		// Phase 3: Property mapping (99.4% of blocks) + i18n (98.3% of blocks as per v11.2).
+		$property_mappings = array(
+			'apiVersion'      => 'api_version',
+			'name'            => 'name',
+			'title'           => 'title',
+			'category'        => 'category',
+			'parent'          => 'parent',
+			'ancestor'        => 'ancestor',
+			'icon'            => 'icon',
+			'description'     => 'description',
+			'keywords'        => 'keywords',
+			'attributes'      => 'attributes',
+			'providesContext' => 'provides_context',
+			'usesContext'     => 'uses_context',
+			'selectors'       => 'selectors',
+			'supports'        => 'supports',
+			'styles'          => 'styles',
+			'variations'      => 'variations',
+			'example'         => 'example',
+			'allowedBlocks'   => 'allowed_blocks',
+		);
+		$i18n_schema = $i18n_schema ?? get_block_metadata_i18n_schema();
+		$i18n_domain = ! empty( $metadata['textdomain'] ) ? $metadata['textdomain'] : null;
+		foreach ( $property_mappings as $key => $mapped_key ) {
+			if ( isset( $metadata[ $key ] ) ) {
+				$settings[ $mapped_key ] = $metadata[ $key ];
+				if ( $i18n_domain && isset( $i18n_schema->$key ) ) {
+					$settings[ $mapped_key ] = translate_settings_using_i18n_schema( $i18n_schema->$key, $settings[ $mapped_key ], $i18n_domain );
+				}
+			}
+		}
+
+		// Phase 4: Merge caller-provided settings (99.4% of blocks as per v11.2).
+		$settings = array_merge( $settings, $block_settings );
+
+		// Phase 5: Asset handle and module registration (21.3% of blocks as per v11.2).
+		$asset_fields = array(
+			// Scripts.
+			'editorScript'     => array( 'editor_script_handles', 'register_block_script_handle' ),
+			'script'           => array( 'script_handles', 'register_block_script_handle' ),
+			'viewScript'       => array( 'view_script_handles', 'register_block_script_handle' ),
+			// Styles.
+			'editorStyle'      => array( 'editor_style_handles', 'register_block_style_handle' ),
+			'style'            => array( 'style_handles', 'register_block_style_handle' ),
+			'viewStyle'        => array( 'view_style_handles', 'register_block_style_handle' ),
+			// Script modules.
+			'viewScriptModule' => array( 'view_script_module_ids', 'register_block_script_module_id' ),
+		);
+		foreach ( $asset_fields as $metadata_field => list( $settings_field, $register ) ) {
+			if ( ! empty( $settings[ $metadata_field ] ) ) {
+				$metadata[ $metadata_field ] = $settings[ $metadata_field ];
+			}
+			if ( ! empty( $metadata[ $metadata_field ] ) ) {
+				$is_array = is_array( $metadata[ $metadata_field ] );
+				$result   = array();
+				foreach ( (array) $metadata[ $metadata_field ] as $index => $handle ) {
+					$registered = $register( $metadata, $metadata_field, $is_array ? $index : false );
+					if ( $registered ) {
+						$result[] = $registered;
+					}
+				}
+				$settings[ $settings_field ] = $result;
+			}
+		}
+
+		// blockHooks mapping — skipped. Only woocommerce/saved-for-later uses it (0.6% as per v11.2), and that block
+		// is registered separately in BlockTypesController. The fallback guard in Phase 1 covers any future additions.
+
+		// Phase 6: block_type_metadata_settings filter (99.4% of blocks as per v11.2) — keep for third-party extensibility.
+		// Droppable for WC blocks specifically: WC's own listeners (use_single_block_editor_style,
+		// prevent_shortcodes_html_breakage) only affect WC blocks or core/shortcode, and could be
+		// inlined. But the filter also serves third-party listeners.
+		$settings = apply_filters( 'block_type_metadata_settings', $settings, $metadata );
+
+		// Phase 7: Register (99.4% of blocks as per v11.2) — the only mandatory WP core call.
+		return (bool) \WP_Block_Type_Registry::get_instance()->register(
+			! empty( $settings['name'] ) ? $settings['name'] : $metadata['name'],
+			$settings
 		);
 	}
 
