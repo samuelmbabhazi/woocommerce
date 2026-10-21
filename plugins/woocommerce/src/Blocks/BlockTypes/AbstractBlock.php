@@ -393,8 +393,7 @@ abstract class AbstractBlock {
 		$metadata         = apply_filters( 'block_type_metadata', $metadata ); // phpcs:ignore WooCommerce.Commenting.CommentHooks
 
 		// Step 3: Property mapping (99.4% of blocks) + i18n (98.9% of blocks as per v11.4) + merge caller-provided settings.
-		$settings = array();
-
+		$settings          = array();
 		$property_mappings = array(
 			'apiVersion'      => 'api_version',
 			'name'            => 'name',
