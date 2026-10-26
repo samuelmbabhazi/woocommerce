@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Remove the circular imports between the email editor's event trackers and the events index.
